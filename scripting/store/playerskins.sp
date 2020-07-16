@@ -39,6 +39,7 @@ new g_cvarSkinDelay = -1;
 new bool:g_bTForcedSkin = false;
 new bool:g_bCTForcedSkin = false;
 
+
 #if defined STANDALONE_BUILD
 public OnPluginStart()
 #else
@@ -158,7 +159,7 @@ public PlayerSkins_Config(&Handle:kv, itemid)
 public PlayerSkins_Equip(client, id)
 {
 	new m_iData = Store_GetDataIndex(id);
-	if(g_eCvars[g_cvarSkinChangeInstant][aCache] && IsPlayerAlive(client) && GetClientTeam(client)==g_ePlayerSkins[m_iData][iTeam] && TF2_GetPlayerClass(client)==g_ePlayerSkins[m_iData][szClass])
+	if(g_eCvars[g_cvarSkinChangeInstant][aCache] && IsPlayerAlive(client) && GetClientTeam(client)==g_ePlayerSkins[m_iData][iTeam] && TF2_GetPlayerClass(client)==TF2_GetClass(g_ePlayerSkins[m_iData][szClass]))
 	{
 		
 		Store_SetClientModel(client, g_ePlayerSkins[m_iData][szModel], g_ePlayerSkins[m_iData][iSkin]);
@@ -187,9 +188,12 @@ public PlayerSkins_Remove(client, id)
 public Action:PlayerSkins_PlayerSpawn(Handle:event,const String:name[],bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(!IsClientInGame(client) || !IsPlayerAlive(client) || !(2<=GetClientTeam(client)<=3) || TF2_GetPlayerClass(client)=TFClass_Unknown)
+	new m_iEquipped = Store_GetEquippedItem(client, "playerskin", 2);
+	if(m_iEquipped < 0)
+		m_iEquipped = Store_GetEquippedItem(client, "playerskin", GetClientTeam(client)-2);
+	if(!IsClientInGame(client) || !IsPlayerAlive(client) || !(2<=GetClientTeam(client)<=3) || !(TF2_GetPlayerClass(client)==TF2_GetClass(g_ePlayerSkins[Store_GetDataIndex(m_iEquipped)][szClass])))
 		return Plugin_Continue;
-			
+	
 	new Float:Delay = Float:g_eCvars[g_cvarSkinDelay][aCache];
 
 	if(Delay < 0 && g_bZombieMode)
@@ -212,9 +216,7 @@ public Action:PlayerSkins_PlayerSpawnPost(Handle:timer, any:userid)
 	if(g_bZombieMode)
 		if(ZR_IsClientZombie(client))
 			return Plugin_Continue;
-	
-	if(TF2_GetPlayerClass != g_ePlayerSkins[m_iData][szClass])
-		return Plugin_Continue;
+			
 		
 	new m_iEquipped = Store_GetEquippedItem(client, "playerskin", 2);
 	if(m_iEquipped < 0)
